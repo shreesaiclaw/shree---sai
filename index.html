@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HARIKUMAR Ticket Booking</title>
+<style>
+body{font-family:Arial;background:#f2f2f2;margin:0;padding:10px;text-align:center}
+h2{color:#0a2a5e}
+.page{display:none}.active{display:block}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:10px auto;max-width:700px}
+.g150{grid-template-columns:repeat(3,1fr)}
+.col{background:#fff;border:2px solid #0a2a5e;border-radius:8px;padding:10px;cursor:pointer}
+.col b{color:red;font-size:18px;display:block}
+.col.selected{background:#fff176;border-color:#ff9800}
+button{background:#0a2a5e;color:#fff;border:none;padding:10px 14px;border-radius:8px;margin:4px;cursor:pointer}
+.wabtn{background:#25D366;font-size:18px;width:92%;padding:14px}
+.paybox{background:#e3f2fd;border:2px solid #0a2a5e;border-radius:10px;padding:15px;margin:15px auto;max-width:500px}
+input{padding:12px;width:90%;margin:5px;border-radius:5px;border:1px solid #ccc;font-size:16px}
+table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:8px}
+</style>
+</head>
+<body>
+
+<h1 style="color:#0a2a5e">HARIKUMAR BOOKING</h1>
+
+<div class="page active" id="p1"><h2>Rs.50 - Page 1</h2><div class="grid" id="g1"></div></div>
+<div class="page" id="p2"><h2>Rs.50 - Page 2</h2><div class="grid" id="g2"></div></div>
+<div class="page" id="p3"><h2>Rs.50 - Page 3</h2><div class="grid" id="g3"></div></div>
+<div class="page" id="p4"><h2>Rs.50 - Page 4</h2><div class="grid" id="g4"></div></div>
+<div class="page" id="p5"><h2>150 Rs - Last Page</h2><div class="grid g150" id="g5"></div></div>
+
+<button onclick="showPage('p1')">Page 1</button>
+<button onclick="showPage('p2')">Page 2</button>
+<button onclick="showPage('p3')">Page 3</button>
+<button onclick="showPage('p4')">Page 4</button>
+<button onclick="showPage('p5')">Last Page</button>
+
+<div class="paybox">
+<h3>YOUR BOOKING</h3>
+<input id="custMobile" placeholder="Enter Your WhatsApp Number" type="tel" maxlength="10">
+<p><b>Selected Numbers:</b> <span id="selNum" style="color:red">None</span></p>
+<p><b>Total Amount:</b> <span id="amt">0</span> Rs</p>
+
+<p><b>Step 1: Touch QR to Pay</b></p>
+<a id="paylink" href="#" onclick="return checkSel()">
+  <img src="qr.jpg" style="width:220px;border:2px solid #0a2a5e;border-radius:10px">
+</a>
+<p>UPI ID: paytm.s1shry8@pty</p>
+
+<p><b>Step 2: After Payment Click Below</b></p>
+<button class="wabtn" onclick="sendToMe()">✅ Payment Done - Send Booking</button>
+</div>
+
+<button onclick="adminLogin()" style="background:#333">Admin Login</button>
+<div id="adminChart" style="display:none;background:#fff;padding:15px;margin:20px auto;max-width:600px;border:2px solid #0a2a5e">
+<h3>BOOKED CHART</h3>
+<table><thead><tr style="background:#0a2a5e;color:#fff"><th>No</th><th>WhatsApp No</th><th>Numbers</th><th>Amount</th></tr></thead><tbody id="chartBody"></tbody></table><br>
+<button onclick="clearChart()" style="background:red">Clear All</button>
+</div>
+
+<script>
+let selected=[];
+function createGrid(id,start,count,price,tic){
+ let g=document.getElementById(id);
+ for(let i=0;i<count;i++){
+  let num=start+i;
+  let d=document.createElement('div'); d.className='col';
+  d.innerHTML=`<b>${num}</b> ${tic}`;
+  d.onclick=function(){
+   this.classList.toggle('selected');
+   let idx=selected.findIndex(s=>s.num==num);
+   if(idx>-1){ selected.splice(idx,1); } else { selected.push({num:num,price:price}); }
+   updatePay();
+  }
+  g.appendChild(d);
+ }
+}
+createGrid('g1',9400,25,50,'1 TIC');
+createGrid('g2',9425,25,50,'1 TIC');
+createGrid('g3',9450,25,50,'1 TIC');
+createGrid('g4',9475,25,50,'1 TIC');
+createGrid('g5',3995,30,150,'3 TIC');
+
+function updatePay(){
+ let total=selected.reduce((a,b)=>a+b.price,0);
+ let nums=selected.map(s=>s.num).join(', ');
+ document.getElementById('amt').innerText=total;
+ document.getElementById('selNum').innerText=nums||'None';
+ document.getElementById('paylink').href=`upi://pay?pa=paytm.s1shry8@pty&pn=HARIKUMAR%20B&am=${total}&cu=INR`;
+}
+function checkSel(){ if(selected.length==0){alert('Select at least 1 number'); return false;} return true;}
+function showPage(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id).classList.add('active')}
+
+let bookings=JSON.parse(localStorage.getItem('bookings')||'[]');
+function sendToMe(){
+  if(selected.length==0) return alert('Select number first');
+  let mobile=document.getElementById('custMobile').value;
+  if(mobile.length!=10) return alert('Enter Correct 10 Digit WhatsApp Number');
+  let total=selected.reduce((a,b)=>a+b.price,0);
+  let nums=selected.map(s=>s.num).join(', ');
+  bookings.push({name:mobile,num:nums,amt:total});
+  localStorage.setItem('bookings',JSON.stringify(bookings));
+  let msg=`New Booking Received%0AWhatsApp No: ${mobile}%0ABooked Numbers: ${nums}%0ATotal Amount Paid: ${total} Rs`;
+  window.open(`https://wa.me/918921967710?text=${msg}`,'_blank');
+}
+function showChart(){
+ let h=''; bookings.forEach((b,i)=>{h+=`<tr><td>${i+1}</td><td>${b.name}</td><td><b style="color:red">${b.num}</b></td><td>${b.amt} Rs</td></tr>`});
+ document.getElementById('chartBody').innerHTML=h;
+}
+function clearChart(){bookings=[];localStorage.removeItem('bookings');showChart()}
+function adminLogin(){ let p=prompt("Enter Admin Password"); if(p==="8921"){document.getElementById('adminChart').style.display='block';showChart()}else{alert("Wrong Password")} }
+</script>
+</body>
+</html>
